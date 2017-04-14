@@ -7,6 +7,7 @@ using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
+using Windows.UI.ViewManagement;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Controls.Primitives;
@@ -22,6 +23,8 @@ namespace WallpaperGenerator
     /// </summary>
     sealed partial class App : Application
     {
+        static string deviceFamily;
+
         /// <summary>
         /// Initializes the singleton application object.  This is the first line of authored code
         /// executed, and as such is the logical equivalent of main() or WinMain().
@@ -30,6 +33,28 @@ namespace WallpaperGenerator
         {
             this.InitializeComponent();
             this.Suspending += OnSuspending;
+
+            //API check to ensure the "RequiresPointerMode" property exists, ensuring project is running on build 14393 or later
+            if (Windows.Foundation.Metadata.ApiInformation.IsPropertyPresent("Windows.UI.Xaml.Application", "RequiresPointerMode"))
+            {
+                //If running on the Xbox, disable the default on screen pointer
+                if (IsXbox())
+                {
+                    Application.Current.RequiresPointerMode = ApplicationRequiresPointerMode.WhenRequested;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Detection code in Windows 10 to identify the platform it is being run on
+        /// This function returns true if the project is running on an XboxOne
+        /// </summary>
+        public static bool IsXbox()
+        {
+            if (deviceFamily == null)
+                deviceFamily = Windows.System.Profile.AnalyticsInfo.VersionInfo.DeviceFamily;
+
+            return deviceFamily == "Windows.Xbox";
         }
 
         /// <summary>
@@ -39,6 +64,16 @@ namespace WallpaperGenerator
         /// <param name="e">Details about the launch request and process.</param>
         protected override void OnLaunched(LaunchActivatedEventArgs e)
         {
+            // By default we want to fill the entire core window.
+            ApplicationView.GetForCurrentView().SetDesiredBoundsMode(ApplicationViewBoundsMode.UseCoreWindow);
+
+#if DEBUG
+            if (System.Diagnostics.Debugger.IsAttached)
+            {
+                this.DebugSettings.EnableFrameRateCounter = true;
+            }
+#endif
+
             Frame rootFrame = Window.Current.Content as Frame;
 
             // Do not repeat app initialization when the Window already has content,
@@ -66,7 +101,7 @@ namespace WallpaperGenerator
                     // When the navigation stack isn't restored navigate to the first page,
                     // configuring the new page by passing required information as a navigation
                     // parameter
-                    rootFrame.Navigate(typeof(MainPage), e.Arguments);
+                    rootFrame.Navigate(typeof(GamePage), e.Arguments);
                 }
                 // Ensure the current window is active
                 Window.Current.Activate();
